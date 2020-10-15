@@ -1,3 +1,4 @@
+const async = require('async');
 const EventEmitter = require('events');
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
@@ -21,47 +22,41 @@ module.exports = class Google extends EventEmitter {
   }
 
   search(keywords, maxCount=10) {
-    try {
-      const buffer = [];
-      for (const keyword of GoogleSearchKeyword.shuffle(keywords)) {
-        // generate url
-        const url = new URL('https://www.google.com/search');
-        if (keyword.isGenuin() && maxCount > 10) {
-          url.searchParams.append('num', maxCount);
-        }
-        Object.entries({ hl: 'ja', source: 'hp', biw: '', bih: '', q: keyword.toString() })
-          .forEach(([key, value]) => url.searchParams.append(key, value));
-
-        // request config
-        const config = {
-          headers: {
-            'User-Agent': this.choiceUserAgent(),
-            'Accept-Language': 'ja-JP',
-            'Connection': 'Close',
-          },
-          transformResponse: [this.parseResult],
-        };
-
-        buffer.push([url, config, keyword]);
+    const queue = async.queue((keyword, callback) => {
+      // generate url
+      const url = new URL('https://www.google.com/search');
+      if (keyword.isGenuin() && maxCount > 10) {
+        url.searchParams.append('num', maxCount);
       }
-      const timer = setInterval(() => {
-        if (buffer.length !== 0) {
-          const [url, config, keyword] = buffer.shift();
-          console.log('query ' + keyword.toString() + '. this is ' + (keyword.isGenuin() ? 'genuin keyword.' : 'dummy keyword.'));
-          axios.get(url.toString(), config).then(res => {
-            if (keyword.isGenuin()) {
-              res.data.forEach(r => r.keyword = keyword);
-              this.emit('data', res.data);
-            }
-            if (buffer.length === 0) {
-              clearInterval(timer);
-              this.emit('end');
-            }
-          });
+      Object.entries({ hl: 'ja', source: 'hp', biw: '', bih: '', q: keyword.toString() })
+        .forEach(([key, value]) => url.searchParams.append(key, value));
+
+      // request config
+      const config = {
+        headers: {
+          'User-Agent': this.choiceUserAgent(),
+          'Accept-Language': 'ja-JP',
+          'Connection': 'Close',
+        },
+        transformResponse: [this.parseResult],
+      };
+
+      axios.get(url.toString(), config).then(res => {
+        if (keyword.isGenuin()) {
+          res.data.forEach(r => r.keyword = keyword);
+          this.emit('data', res.data);
         }
-      }, this.interval);
-    } catch (err) {
+        setTimeout(callback, this.interval);
+      });
+    }, 1);
+    queue.drain(() => {
+      this.emit('end');
+    });
+    queue.error(err => {
       this.emit('error', err);
+    });
+    for (const keyword of GoogleSearchKeyword.shuffle(keywords)) {
+      queue.push(keyword);
     }
   }
 
@@ -71,6 +66,19 @@ module.exports = class Google extends EventEmitter {
       .map(GoogleSerpsRecord.factory)
       .filter(item => item != null);
   }
+}
+
+function generateRandomString() {
+  const candidates = ['wsekf', 'wlthn', 'nufxh', 'ycywg', 'lbdql', 'lphjm', 'cyuwj', 'xnrhr', 'zmbxz', 'jtozk'];
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function getShuffleKeyword(keyword) {
+  if (!/\s/.test(keyword)) return GoogleSearchKeyword.generateRandomString();
+  const tmp = keyword.split(/\s/g);
+  tmp.sort(() => Math.random() - .5);
+  tmp.shift();
+  return tmp.join(' ');
 }
 
 class GoogleSearchKeyword {
@@ -88,27 +96,19 @@ class GoogleSearchKeyword {
 
   static shuffle(keywords) {
     const methods = [
-      GoogleSearchKeyword.generateRandomString,
-      GoogleSearchKeyword.getShuffleKeyword,
+      generateRandomString,
+      getShuffleKeyword,
     ];
     const kwObjects = keywords.map(kw => new GoogleSearchKeyword(kw));
     const dummies = keywords.map(kw => new GoogleSearchDummyKeyword(methods[Math.floor(Math.random() * methods.length)](kw)));
-    const tmp = kwObjects.concat(dummies);
-    tmp.sort(() => Math.random() - .5);
+    kwObjects.sort(() => Math.random() - .5);
+    dummies.sort(() => Math.random() - .5);
+    const tmp = [];
+    for (let i = 0; i < keywords.length; i++) {
+      tmp.push(kwObjects[i]);
+      tmp.push(dummies[i]);
+    }
     return tmp;
-  }
-
-  static generateRandomString() {
-    const candidates = ['wsekf', 'wlthn', 'nufxh', 'ycywg', 'lbdql', 'lphjm', 'cyuwj', 'xnrhr', 'zmbxz', 'jtozk'];
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }
-
-  static getShuffleKeyword(keyword) {
-    if (!/\s/.test(keyword)) return GoogleSearchKeyword.generateRandomString();
-    const tmp = keyword.split(/\s/g);
-    tmp.sort(() => Math.random() - .5);
-    tmp.shift();
-    return tmp.join(' ');
   }
 }
 

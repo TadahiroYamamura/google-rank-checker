@@ -9,6 +9,7 @@
   "author": "Tadahiro Yamamura",
   "license": "ISC",
   "dependencies": {
+    "async": "^3.2.0",
     "axios": "^0.20.0",
     "cac": "^6.6.1",
     "jsdom": "^16.4.0"
