@@ -1,0 +1,16 @@
+{
+  "name": "rank-checker",
+  "version": "1.0.0",
+  "description": "Google rank checker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tadahiro Yamamura",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.20.0",
+    "cac": "^6.6.1",
+    "jsdom": "^16.4.0"
+  }
+}

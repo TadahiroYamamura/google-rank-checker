@@ -1,0 +1,6 @@
+version: '3'
+services:
+  lambda:
+    image: lambci/lambda:nodejs12.x
+    volumes:
+      - .:/var/task:ro,delegated
