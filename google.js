@@ -7,6 +7,7 @@ module.exports = class Google extends EventEmitter {
   constructor() {
     super();
     this.interval = 1000;
+    this.cookies = new CookieList();
   }
 
   choiceUserAgent() {
@@ -14,7 +15,6 @@ module.exports = class Google extends EventEmitter {
   }
 
   search(keywords, maxCount=10) {
-    let cookies = [];
     const queue = async.queue((keyword, callback) => {
       // generate url
       const url = new URL('https://www.google.com/search');
@@ -30,7 +30,7 @@ module.exports = class Google extends EventEmitter {
           'User-Agent': this.choiceUserAgent(),
           'Accept-Language': 'ja-JP',
           'Connection': 'Close',
-          'Cookie': makeCookieString(cookies),
+          'Cookie': makeCookieString(this.cookies),
         },
         transformResponse: [this.parseResult],
       };
@@ -42,17 +42,14 @@ module.exports = class Google extends EventEmitter {
           res.data.forEach(r => r.keyword = keyword.toString());
           this.emit('data', res.data);
         }
-        const resultCookies = res.headers['set-cookie'].map(x => parseCookieString(x.trim()));
-        cookies = cookies.filter(a => !resultCookies.some(b => a.equals(b))).concat(resultCookies);
+        const resultCookies = new CookieList(...res.headers['set-cookie'].map(x => parseCookieString(x.trim())));
+        this.cookies = this.cookies.filter(a => !resultCookies.some(b => a.equals(b))).concat(resultCookies);
         setTimeout(callback, this.interval + Math.floor(Math.random() * 2000));
       })
       .catch(err => {
-        if (err.response.status == 429) {
+        if (err.response != null && err.response.status == 429) {
           console.log('429...');
-          console.log(JSON.stringify({ keyword, url, config }));
-          cookies.splice(0);
-          if (keyword.isGenuin()) queue.push(keyword);
-          setTimeout(callback, this.interval + Math.floor(Math.random() * 2000));
+          this.emit('error', { keyword, url, config });
         } else {
           console.error(JSON.stringify({ keyword, url, config }));
           this.emit('error', err);
@@ -113,6 +110,46 @@ function getShuffleKeyword(keyword) {
   tmp.sort(() => Math.random() - .5);
   tmp.shift();
   return tmp.join(' ');
+}
+
+class CookieList {
+  constructor(...initialElements) {
+    this.elements = initialElements;
+  }
+
+  some() {
+    return this.elements.some.apply(this.elements, arguments);
+  }
+
+  sort() {
+    return new CookieList(...this.elements.sort.apply(this.elements, arguments));
+  }
+
+  forEach(callback) {
+    this.elements.forEach(callback);
+  }
+
+  filter() {
+    return new CookieList(...this.elements.filter.apply(this.elements, arguments));
+  }
+
+  map() {
+    return new CookieList(...this.elements.map.apply(this.elements, arguments));
+  }
+
+  splice() {
+    return new CookieList(...this.elements.splice.apply(this.elements, arguments));
+  }
+
+  concat(...values) {
+    return new CookieList(...this.elements.concat(...values.map(x => x.elements)));
+  }
+
+  push(key, value) {
+    const c = new CookieElement(key, value);
+    c.meta.path = '/';
+    this.elements.push(c);
+  }
 }
 
 class CookieElement {
