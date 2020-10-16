@@ -22,6 +22,7 @@ module.exports = class Google extends EventEmitter {
   }
 
   search(keywords, maxCount=10) {
+    let cookies = [];
     const queue = async.queue((keyword, callback) => {
       // generate url
       const url = new URL('https://www.google.com/search');
@@ -37,16 +38,33 @@ module.exports = class Google extends EventEmitter {
           'User-Agent': this.choiceUserAgent(),
           'Accept-Language': 'ja-JP',
           'Connection': 'Close',
+          'Cookie': makeCookieString(cookies),
         },
         transformResponse: [this.parseResult],
       };
 
-      axios.get(url.toString(), config).then(res => {
+
+      axios.get(url.toString(), config)
+      .then(res => {
         if (keyword.isGenuin()) {
           res.data.forEach(r => r.keyword = keyword.toString());
           this.emit('data', res.data);
         }
+        const resultCookies = res.headers['set-cookie'].map(x => parseCookieString(x.trim()));
+        cookies = cookies.filter(a => !resultCookies.some(b => a.equals(b))).concat(resultCookies);
         setTimeout(callback, this.interval);
+      })
+      .catch(err => {
+        if (err.response.status == 429) {
+          console.log('429...');
+          console.log(JSON.stringify({ keyword, url, config }));
+          cookies.splice(0);
+          if (keyword.isGenuin()) queue.push(keyword);
+          setTimeout(callback, this.interval);
+        } else {
+          console.error(JSON.stringify({ keyword, url, config }));
+          this.emit('error', err);
+        }
       });
     }, 1);
     queue.drain(() => {
@@ -68,6 +86,30 @@ module.exports = class Google extends EventEmitter {
   }
 }
 
+function makeCookieString(cookies) {
+  const tmp = {};
+  cookies
+    .sort((a, b) => a.meta.path.length - b.meta.path.length)
+    .forEach(c => { tmp[c.name] = c.value || ''; });
+  return Object.entries(tmp).map(x => x.join('=')).join('; ');
+}
+
+function parseCookieString(cookieStr) {
+  const elements = cookieStr.split(';').map(x => x.trim());
+  const first = elements.shift();
+  const first_idx = first.indexOf('=');
+  const result = new CookieElement(first.substr(0, first_idx), first.substr(first_idx + 1));
+  for (let e of elements) {
+    const idx = e.indexOf('=');
+    if (idx < 0) {
+      result.meta[e] = undefined;
+    } else {
+      result.meta[e.substr(0, idx)] = e.substr(idx+1);
+    }
+  }
+  return result;
+}
+
 function generateRandomString() {
   const candidates = ['wsekf', 'wlthn', 'nufxh', 'ycywg', 'lbdql', 'lphjm', 'cyuwj', 'xnrhr', 'zmbxz', 'jtozk'];
   return candidates[Math.floor(Math.random() * candidates.length)];
@@ -79,6 +121,26 @@ function getShuffleKeyword(keyword) {
   tmp.sort(() => Math.random() - .5);
   tmp.shift();
   return tmp.join(' ');
+}
+
+class CookieElement {
+  constructor(name, value) {
+    this.name = name;
+    this.value = value;
+    this.meta = {};
+  }
+
+  check(url) {
+    return url.pathname.includes(this.meta.path);
+  }
+
+  equals(other) {
+    return this.name === other.name && this.meta.path === other.meta.path;
+  }
+
+  toString() {
+    return `${this.name}=${this.value}`;
+  }
 }
 
 class GoogleSearchKeyword {
