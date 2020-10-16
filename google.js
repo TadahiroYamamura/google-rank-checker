@@ -6,7 +6,7 @@ const { JSDOM } = require('jsdom');
 module.exports = class Google extends EventEmitter {
   constructor() {
     super();
-    this.interval = 500;
+    this.interval = 1000;
   }
 
   choiceUserAgent() {
@@ -43,7 +43,7 @@ module.exports = class Google extends EventEmitter {
 
       axios.get(url.toString(), config).then(res => {
         if (keyword.isGenuin()) {
-          res.data.forEach(r => r.keyword = keyword);
+          res.data.forEach(r => r.keyword = keyword.toString());
           this.emit('data', res.data);
         }
         setTimeout(callback, this.interval);
@@ -74,7 +74,7 @@ function generateRandomString() {
 }
 
 function getShuffleKeyword(keyword) {
-  if (!/\s/.test(keyword)) return GoogleSearchKeyword.generateRandomString();
+  if (!/\s/.test(keyword)) return generateRandomString();
   const tmp = keyword.split(/\s/g);
   tmp.sort(() => Math.random() - .5);
   tmp.shift();
