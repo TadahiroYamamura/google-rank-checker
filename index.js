@@ -1,6 +1,7 @@
 const fs = require('fs');
 const cli = require('cac')();
 const Google = require('./google');
+const { Csv } = require('./storage');
 
 cli.command('test <...keywords>', 'コマンドテスト用')
   .option('--max <count>', '取得する最大のレコード数を指定する', { default: 10 })
@@ -15,19 +16,16 @@ cli.command('google <...keywords>', 'Google検索の結果を取得する')
   .option('--output <path>', '取得結果の出力先', { default: 'google.csv' })
   .action((keywords, options) => {
     const google = new Google();
+    google.interval = 1000;
+    const storage = new Csv();
     google.on('data', records => {
-      const data = records.map(r =>
-        '"' +
-        [
-          r.keyword,
-          r.title.replace(/"/g, '""'),
-          r.url.toString()
-        ].join('","') +
-        '"'
-      ).join('\n');
-      fs.appendFile(options.output, data, () => {});
+      records.forEach(record => storage.append(record));
+    });
+    google.on('end', () => {
+      storage.save(options.output, () => {});
     });
     google.on('error', err => {
+      storage.save(options.output, () => {});
       console.error(err);
     });
     google.search(keywords, options.max);
