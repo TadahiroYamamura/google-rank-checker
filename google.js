@@ -44,7 +44,7 @@ module.exports = class Google extends EventEmitter {
         }
         const resultCookies = res.headers['set-cookie'].map(x => parseCookieString(x.trim()));
         cookies = cookies.filter(a => !resultCookies.some(b => a.equals(b))).concat(resultCookies);
-        setTimeout(callback, this.interval);
+        setTimeout(callback, this.interval + Math.floor(Math.random() * 2000));
       })
       .catch(err => {
         if (err.response.status == 429) {
@@ -52,7 +52,7 @@ module.exports = class Google extends EventEmitter {
           console.log(JSON.stringify({ keyword, url, config }));
           cookies.splice(0);
           if (keyword.isGenuin()) queue.push(keyword);
-          setTimeout(callback, this.interval);
+          setTimeout(callback, this.interval + Math.floor(Math.random() * 2000));
         } else {
           console.error(JSON.stringify({ keyword, url, config }));
           this.emit('error', err);
