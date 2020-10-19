@@ -37,7 +37,7 @@ class Csv {
   }
 
   save(path, callback) {
-    fs.writeFile(path, this.toString(), callback);
+    fs.appendFile(path, this.toString(), callback);
   }
 
   toString() {
