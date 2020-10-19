@@ -39,7 +39,11 @@ module.exports = class Google extends EventEmitter {
       axios.get(url.toString(), config)
       .then(res => {
         if (keyword.isGenuin()) {
-          res.data.forEach(r => r.keyword = keyword.toString());
+          let i = 0;
+          res.data.forEach(r => {
+            r.rank = ++i;
+            r.keyword = keyword.toString()
+          });
           this.emit('data', res.data);
         }
         const resultCookies = new CookieList(...res.headers['set-cookie'].map(x => parseCookieString(x.trim())));
@@ -191,14 +195,15 @@ class GoogleSearchKeyword {
       getShuffleKeyword,
     ];
     const kwObjects = keywords.map(kw => new GoogleSearchKeyword(kw));
-    const dummies = keywords.map(kw => new GoogleSearchDummyKeyword(methods[Math.floor(Math.random() * methods.length)](kw)));
-    kwObjects.sort(() => Math.random() - .5);
-    dummies.sort(() => Math.random() - .5);
+    const dummies = keywords
+      .map(kw => new GoogleSearchDummyKeyword(methods[Math.floor(Math.random() * methods.length)](kw)))
+      .sort(() => Math.random() - .5);
     const tmp = [];
     for (let i = 0; i < keywords.length; i++) {
       tmp.push(kwObjects[i]);
       tmp.push(dummies[i]);
     }
+    tmp.pop();  // 一番最後のダミークエリは不要
     return tmp;
   }
 }
@@ -216,6 +221,7 @@ class GoogleSearchDummyKeyword extends GoogleSearchKeyword {
 
 class GoogleSerpsRecord {
   constructor() {
+    this.rank = -1;
     this.keyword = '';
     this.title = '';
     this.url = '';
