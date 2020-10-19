@@ -24,7 +24,6 @@ cli.command('google [...keywords]', 'Google検索の結果を取得する')
   .option('--keywords <file>', 'キーワードファイルのパス')
   .action((keywords, options) => {
     const google = new Google();
-    google.interval = 1000;
     const storage = new Csv();
     if (options.abuseExemption != null) {
       google.cookies.push('GOOGLE_ABUSE_EXEMPTION', options.abuseExemption);

@@ -6,7 +6,7 @@ const { JSDOM } = require('jsdom');
 module.exports = class Google extends EventEmitter {
   constructor() {
     super();
-    this.interval = 1000;
+    this.interval = 30000;
     this.cookies = new CookieList();
   }
 
