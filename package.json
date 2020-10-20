@@ -4,6 +4,10 @@
   "description": "Google rank checker",
   "main": "index.js",
   "scripts": {
+    "start": "node dist/index.js",
+    "build": "cpx \"src/*.js\" dist",
+    "clean": "rm -rf dist && mkdir dist",
+    "rebuild": "npm run clean && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Tadahiro Yamamura",
@@ -13,5 +17,8 @@
     "axios": "^0.20.0",
     "cac": "^6.6.1",
     "jsdom": "^16.4.0"
+  },
+  "devDependencies": {
+    "cpx": "^1.5.0"
   }
 }
