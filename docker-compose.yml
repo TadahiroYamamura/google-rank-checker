@@ -3,4 +3,4 @@ services:
   lambda:
     image: lambci/lambda:nodejs12.x
     volumes:
-      - .:/var/task:ro,delegated
+      - ./dist:/var/task:ro,delegated
