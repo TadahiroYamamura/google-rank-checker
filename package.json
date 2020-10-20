@@ -5,10 +5,13 @@
   "main": "index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "cpx \"src/*.js\" dist",
+    "build": "run-s cp",
+    "cp": "run-p cp:*",
+    "cp:html": "cpx \"src/*.html\" dist",
+    "cp:js": "cpx \"src/*.js\" dist",
     "clean": "rm -rf dist && mkdir dist",
-    "rebuild": "npm run clean && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "rebuild": "run-s clean build",
+    "test": "jest"
   },
   "author": "Tadahiro Yamamura",
   "license": "Apache-2.0",
@@ -19,6 +22,8 @@
     "jsdom": "^16.4.0"
   },
   "devDependencies": {
-    "cpx": "^1.5.0"
+    "cpx": "^1.5.0",
+    "jest": "^26.6.0",
+    "npm-run-all": "^4.1.5"
   }
 }

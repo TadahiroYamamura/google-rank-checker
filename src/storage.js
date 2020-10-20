@@ -1,38 +1,34 @@
 const fs = require('fs');
 
-class Csv {
+exports.Csv = class Csv {
   constructor() {
-    this.lines = [];
+    this.data = [];
     this.splitter = ',';
     this.quote = '"';
     this.allowNewLine = false;
+    Object.defineProperty(this, 'reg_quote', {get: () => new RegExp(this.quote, 'g')});
+    Object.defineProperty(this, 'reg_newline', {get: () => new RegExp('(\r\n|\r|\n)', 'g')});
   }
 
   append(record) {
-    this.addLine(record.keyword, record.title, record.url);
+    this.data.push(record);
   }
 
-  addLine(...elements) {
-    this.lines.push(elements);
-  }
-
-  _normalize(lines) {
-    const q = new RegExp(this.quote, 'g');
-    const nl = new RegExp('(\r\n|\r|\n)', 'g');
-    return lines.map(line => {
-      const tmp = [];
-      line.forEach(e => {
-        let x = e;
-        if (x == null) x = '';
-        if (typeof x !== 'string') x = x.toString();
-        x = x.replace(q, this.quote.repeat(2));
-        if (!this.allowNewLine) x = x.replace(nl, '');
-        if ([this.splitter, this.quote].some(s => x.includes(s))) {
-          x = this.quote + x + this.quote;
-        }
-        tmp.push(x);
-      });
-      return tmp;
+  _normalize(record) {
+    return [
+      record.rank,
+      record.keyword,
+      record.title,
+      record.url,
+    ].map(e => {
+      if (e == null) e = '';
+      if (typeof e !== 'string') e = e.toString();
+      e = e.replace(this.reg_quote, this.quote.repeat(2));
+      if (!this.allowNewLine) e = e.replace(this.reg_newline, '');
+      if ([this.splitter, this.quote].some(s => e.includes(s))) {
+        e = this.quote + e + this.quote;
+      }
+      return e;
     });
   }
 
@@ -41,10 +37,26 @@ class Csv {
   }
 
   toString() {
-    return this._normalize(this.lines)
-      .map(line => line.join(this.splitter))
+    return this.data
+      .map(x => this._normalize(x).join(this.splitter))
       .join('\n');
   }
 }
 
-exports.Csv = Csv;
+exports.Json = class Json {
+  constructor() {
+    this.data = [];
+  }
+
+  append(record) {
+    this.data.push(record);
+  }
+
+  save(path, callback) {
+    fs.appendFile(path, this.toString(), callback);
+  }
+
+  toString() {
+    return JSON.stringify(this.data, undefined, 2);
+  }
+}

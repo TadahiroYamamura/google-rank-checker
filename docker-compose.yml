@@ -2,5 +2,8 @@ version: '3'
 services:
   lambda:
     image: lambci/lambda:nodejs12.x
+    environment:
+      NODE_PATH: /var/lib
     volumes:
       - ./dist:/var/task:ro,delegated
+      - ./node_modules:/var/lib

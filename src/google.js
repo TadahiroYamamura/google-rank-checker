@@ -3,7 +3,7 @@ const EventEmitter = require('events');
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
 
-module.exports = class Google extends EventEmitter {
+class Google extends EventEmitter {
   constructor() {
     super();
     this.interval = 30000;
@@ -254,3 +254,5 @@ class GoogleSerpsRecord {
     return result;
   }
 }
+
+module.exports = Google;
