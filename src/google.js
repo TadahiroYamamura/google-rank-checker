@@ -15,7 +15,12 @@ module.exports = class Google extends EventEmitter {
   }
 
   search(keywords, maxCount=10) {
+    let cnt = 0;
     const queue = async.queue((keyword, callback) => {
+      if (keyword.isGenuin()) {
+        console.log(`processing ${keyword.toString()}.`);
+      }
+
       // generate url
       const url = new URL('https://www.google.com/search');
       if (keyword.isGenuin() && maxCount > 10) {
@@ -48,11 +53,16 @@ module.exports = class Google extends EventEmitter {
         }
         const resultCookies = new CookieList(...res.headers['set-cookie'].map(x => parseCookieString(x.trim())));
         this.cookies = this.cookies.filter(a => !resultCookies.some(b => a.equals(b))).concat(resultCookies);
-        setTimeout(callback, this.interval + Math.floor(Math.random() * 2000));
+        if (2 > ++cnt) {
+          setTimeout(callback, 1000 + Math.floor(Math.random() * 2000));
+        } else {
+          cnt = 0;
+          setTimeout(callback, this.interval);
+        }
       })
       .catch(err => {
         if (err.response != null && err.response.status == 429) {
-          console.log('429...');
+          console.log('Got 429(Too Many Requests)');
           this.emit('error', { keyword, url, config });
         } else {
           console.error(JSON.stringify({ keyword, url, config }));
