@@ -6,7 +6,7 @@ const { Csv } = require('./storage');
 cli.command('test [...keywords]', 'コマンドテスト用')
   .option('--max <count>', '取得する最大のレコード数を指定する', { default: 10 })
   .option('--output <path>', '取得結果の出力先', { default: 'google.csv' })
-  .option('--abuse-exemption <id>', 'reCAPTCHAの結果取得してきた免除ID', { default: 'google.csv' })
+  .option('--abuse-exemption <id>', 'reCAPTCHAの結果取得してきた免除ID')
   .option('--keywords <file>', 'キーワードファイルのパス')
   .action((keywords, options) => {
     if (options.keywords != null) {
@@ -20,7 +20,7 @@ cli.command('test [...keywords]', 'コマンドテスト用')
 cli.command('google [...keywords]', 'Google検索の結果を取得する')
   .option('--max <count>', '取得する最大のレコード数を指定する', { default: 10 })
   .option('--output <path>', '取得結果の出力先', { default: 'google.csv' })
-  .option('--abuse-exemption <id>', 'reCAPTCHAの結果取得してきた免除ID', { default: 'google.csv' })
+  .option('--abuse-exemption <id>', 'reCAPTCHAの結果取得してきた免除ID')
   .option('--keywords <file>', 'キーワードファイルのパス')
   .action((keywords, options) => {
     const google = new Google();
